@@ -40,8 +40,7 @@ def main():
 
     if st.button("Predict Churn Risk"):
         with st.spinner("Making prediction..."):
-            prediction = predict_churn(user_data)
-            display_prediction(prediction)
+            predict_churn(user_data)
 
 def load_scalers_encoder(scaler_path="scaler.pkl", encoder_path="encoder.pkl"):
     """Load scaler and encoder"""
@@ -77,10 +76,7 @@ def predict_churn(user_data):
     with open("XGBClassifier.pkl", "rb") as model_file:
         model = pickle.load(model_file)
     prediction = model.predict(user_data)[0]
-    return prediction
 
-def display_prediction(prediction):
-    """Display prediction"""
     if prediction == 1:
         st.write("Predicted: **Churn granted*")
     else:
