@@ -65,7 +65,7 @@ def preprocess_user_data(user_data, encoder, scalers):
     
     # Drop original categorical columns and concatenate encoded features
     user_data_encoded.index = user_data.index
-    user_data = pd.concat([continuous,user_data_encoded]), axis=1)
+    user_data = pd.concat([user_data,user_data_encoded], axis=1)
 
     # Scale continuous features
     user_data[continuous] = scalers.transform(user_data[continuous])
