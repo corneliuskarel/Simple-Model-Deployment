@@ -54,7 +54,7 @@ def load_scalers_encoder(scaler_path="scaler.pkl", encoder_path="encoder.pkl"):
 def preprocess_user_data(user_data, encoder, scalers):
     """Preprocess user data"""
     categorical = ['Geography', 'Gender']
-    continuous = ['Age', 'Tenure', 'Balance', 'NumOfProducts', 'HasCreditCard', 'IsActiveMember', 'EstimatedSalary']
+    continuous = ['Age', 'Tenure', 'Balance', 'NumOfProducts', 'HasCreditCard', 'IsActiveMember', 'EstimatedSalary','CreditScore']
 
     # Ensure the user_data DataFrame has the correct column names
     user_data.columns = ['CreditScore', 'Geography', 'Gender', 'Age', 'Tenure', 'Balance', 'NumOfProducts', 'HasCreditCard', 'IsActiveMember', 'EstimatedSalary']
