@@ -1,81 +1,88 @@
-#necessary libraries
 import pandas as pd
 from sklearn.preprocessing import OneHotEncoder
-
-#streamlit apps
 import streamlit as st
 import pickle
 
-def main():
-    #Description Title for Application
-    st.title("Churn Prediction Application")
-    st.write("Predicting Churn granted or not")
+class ChurnPredictor:
+    def __init__(self):
+        self.encoder = None
+        self.scaler = None
+        self.classifier_model = None
 
-    geography_input = st.selectbox("Select your Geography :", ["France", "Germany", "Spain"])
-    credit_score_input = st.number_input("Input your Credit Score :")
-    gender_input = st.selectbox("Select your Gender :", ["Male", "Female"])
-    age_input = st.number_input("Inputr your Age :")
-    tenure_input = st.number_input("Input your Tenure (years with company) :")
-    balance_input = st.number_input("Input your Account Balance :")
-    num_of_products_input = st.number_input("Input your Number of Products :")
-    has_cr_card_input = st.selectbox("Do you have a Credit Card ? (Y/N)", ["Y", "N"])
-    is_active_member_input = st.selectbox("are you an Active Member ? (Y/N)", ["Y", "N"])
-    estimated_salary_input = st.number_input("Input your Estimated Salary :")
-    
-    user_data = pd.DataFrame({
-        "CreditScore": [credit_score_input],
-        "Geography": [geography_input],
-        "Gender": [gender_input],
-        "Age": [age_input],
-        "Tenure": [tenure_input],
-        "Balance": [balance_input],
-        "NumOfProducts": [num_of_products_input],
-        "HasCrCard": [1 if has_cr_card_input == "Y" else 0],
-        "IsActiveMember": [1 if is_active_member_input == "Y" else 0],
-        "EstimatedSalary": [estimated_salary_input]
-    })
-
-
-    def load_scaler_and_encoder(encoder_path="encoder.pkl", scaler_path="scaler.pkl"):
+    def load_models(self, encoder_path="encoder.pkl", scaler_path="scaler.pkl", classifier_path="XGBClassifier.pkl"):
         with open(encoder_path, "rb") as encoder_file:
-            encoder = pickle.load(encoder_file)
+            self.encoder = pickle.load(encoder_file)
         
         with open(scaler_path, "rb") as scaler_file:
-            scaler = pickle.load(scaler_file)
+            self.scaler = pickle.load(scaler_file)
+
+        with open(classifier_path, "rb") as classifier_file:
+            self.classifier_model = pickle.load(classifier_file)
+
+    def preprocess_data(self, data):
+        categorical_features = ['Geography', 'Gender']
+        numeric_features = ['CreditScore', 'Balance', 'EstimatedSalary']
+        
+        data_categorical = data[categorical_features]
+        data_encoded = pd.DataFrame(self.encoder.transform(data_categorical).toarray(), columns=self.encoder.get_feature_names_out(categorical_features))
+        data = data.reset_index(drop=True)
+        data = pd.concat([data, data_encoded], axis=1)
+        data.drop(categorical_features, axis=1, inplace=True)
+        data[numeric_features] = self.scaler.transform(data[numeric_features])
+
+        return data
+
+    def predict_churn(self, user_info):
+        prediction = self.classifier_model.predict(user_info)[0]
+
+        return prediction
+
+def main():
+    churn_predictor = ChurnPredictor()
+
+    st.title("Churn Prediction Application")
+    st.write("Predicting Churn Approval")
+
+    country_choice = st.selectbox("Select your Country:", ["France", "Germany", "Spain"])
+    credit_score = st.number_input("Enter your Credit Score:")
+    gender = st.selectbox("Select your Gender:", ["Male", "Female"])
+    age = st.number_input("Enter your Age:")
+    tenure = st.number_input("Enter your Tenure (years with company):")
+    balance = st.number_input("Enter your Account Balance:")
+    num_of_products = st.number_input("Enter your Number of Products:")
+    has_credit_card = st.selectbox("Do you have a Credit Card? (Y/N)", ["Y", "N"])
+    is_active = st.selectbox("Are you an Active Member? (Y/N)", ["Y", "N"])
+    estimated_salary = st.number_input("Enter your Estimated Salary:")
     
-        return encoder, scaler
+    user_info = pd.DataFrame({
+        "CreditScore": [credit_score],
+        "Geography": [country_choice],
+        "Gender": [gender],
+        "Age": [age],
+        "Tenure": [tenure],
+        "Balance": [balance],
+        "NumOfProducts": [num_of_products],
+        "HasCrCard": [1 if has_credit_card == "Y" else 0],
+        "IsActiveMember": [1 if is_active == "Y" else 0],
+        "EstimatedSalary": [estimated_salary]
+    })
 
-    if st.button("Predict Churn granting"):
-        #check all variables
-        check_filled = balance_input and num_of_products_input and has_cr_card_input and is_active_member_input and estimated_salary_input and credit_score_input and geography_input and gender_input and age_input and tenure_input
+    churn_predictor.load_models()
 
-        #decision
-        if not check_filled:
-            st.error("Please input all the field, before predicting!")
+    if st.button("Predict Churn Approval"):
+        if not (balance and num_of_products and has_credit_card and is_active and estimated_salary and credit_score and country_choice and gender and age and tenure):
+            st.error("Please fill in all fields before predicting!")
             return
 
-        numeric = ['CreditScore', 'Balance', 'EstimatedSalary']
-        categorical = ['Geography', 'Gender']        
-        encoder,scaler = load_scaler_and_encoder()
-        user_data_subset = user_data[categorical]
-        user_data_encoded = pd.DataFrame(encoder.transform(user_data_subset).toarray(), columns=encoder.get_feature_names_out(categorical))
-        user_data = user_data.reset_index(drop=True)
-        user_data = pd.concat([user_data, user_data_encoded], axis=1)
-        user_data.drop(categorical, axis=1, inplace=True)
-        user_data[numeric] = scaler.transform(user_data[numeric])
+        preprocessed_data = churn_predictor.preprocess_data(user_info)
        
-        
-        with st.spinner("Making prediction..."):
-            with open("XGBClassifier.pkl", "rb") as XGB_Classifier:
-                models = pickle.load(XGB_Classifier)
-            prediction = models.predict(user_data)[0]  
+        with st.spinner("Predicting..."):
+            prediction = churn_predictor.predict_churn(preprocessed_data)
             
-            #Churn not granted
             if prediction == 0:
-                st.write("Predicted: **You are not Granted a Churn**")
-            #churn granted
+                st.write("Prediction: **Churn Not Approved**")
             else:
-                st.write("Predicted: **You are Granted a Churn**")
+                st.write("Prediction: **Churn Approved**")
 
 if __name__ == "__main__":
     main()
