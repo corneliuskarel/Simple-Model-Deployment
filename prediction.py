@@ -79,7 +79,7 @@ def preprocess_user_data(user_data, encoder, scalers):
 
 def predict_churn(user_data):
     """Predict churn"""
-    with open("finalized_model.pkl", "rb") as model_file:
+    with open("XGBClassifier.pkl", "rb") as model_file:
         model = pickle.load(model_file)
     prediction = model.predict(user_data)[0]
     return prediction
