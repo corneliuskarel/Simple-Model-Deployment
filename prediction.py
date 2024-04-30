@@ -54,13 +54,10 @@ def load_scalers_encoder(scaler_path="scaler.pkl", encoder_path="encoder.pkl"):
 def preprocess_user_data(user_data, encoder, scalers):
     """Preprocess user data"""
     categorical = ['Geography', 'Gender']
-    continuous = ['Age', 'Tenure', 'Balance', 'NumOfProducts', 'HasCrCard', 'IsActiveMember', 'EstimatedSalary']
+    continuous = ['Age', 'Tenure', 'Balance', 'NumOfProducts', 'HasCreditCard', 'IsActiveMember', 'EstimatedSalary']
 
     # Ensure the user_data DataFrame has the correct column names
-    user_data.columns = ['CreditScore', 'Geography', 'Gender', 'Age', 'Tenure', 'Balance', 'NumOfProducts', 'HasCrCard', 'IsActiveMember', 'EstimatedSalary']
-
-    # Drop 'CreditScore' column
-    user_data.drop('CreditScore', axis=1, inplace=True)
+    user_data.columns = ['CreditScore', 'Geography', 'Gender', 'Age', 'Tenure', 'Balance', 'NumOfProducts', 'HasCreditCard', 'IsActiveMember', 'EstimatedSalary']
 
     # Encode categorical features
     user_data_categorical = user_data[categorical]
@@ -68,7 +65,7 @@ def preprocess_user_data(user_data, encoder, scalers):
     
     # Drop original categorical columns and concatenate encoded features
     user_data_encoded.index = user_data.index
-    user_data = pd.concat([user_data, user_data_encoded], axis=1)
+    user_data = pd.concat([user_data.drop(categorical, axis=1), user_data_encoded], axis=1)
 
     # Scale continuous features
     user_data[continuous] = scalers.transform(user_data[continuous])
