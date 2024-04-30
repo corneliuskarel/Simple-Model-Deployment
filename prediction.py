@@ -75,7 +75,7 @@ def main():
         user_data[conti] = scalers.transform(user_data[conti])
         with st.spinner("Making prediction..."):
             # Load the pickled model from its saved location
-            with open("XGB_Classifier.pkl", "rb") as model_file:
+            with open("XGBClassifier.pkl", "rb") as model_file:
                 model = pickle.load(model_file)
 
             # Make prediction
