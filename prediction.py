@@ -64,6 +64,7 @@ def preprocess_user_data(user_data, encoder, scalers):
 
     user_data_subset = user_data[categorical]
     user_data_encoded = pd.DataFrame(encoder.transform(user_data_subset).toarray(), columns=encoder.get_feature_names_out(categorical))
+    user_data_encoded.index = user_data.index  # Ensure indices match for concatenation
     user_data = user_data.reset_index(drop=True)
     user_data = pd.concat([user_data, user_data_encoded], axis=1)
     user_data.drop(categorical, axis=1, inplace=True)
