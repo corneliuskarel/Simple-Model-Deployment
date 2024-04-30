@@ -1,91 +1,81 @@
+#necessary libraries
+import pandas as pd
+from sklearn.preprocessing import OneHotEncoder
+
+#streamlit apps
 import streamlit as st
-import pickle  # For loading the pickled model
-import pandas as pd  # For handling user input data
-from sklearn.preprocessing import OneHotEncoder  # For categorical feature encoding
+import pickle
 
 def main():
-    """Main function to structure your Streamlit app"""
+    #Description Title for Application
+    st.title("Churn Prediction Application")
+    st.write("Predicting Churn granted or not")
 
-    # Add a title and description
-    st.title("Churn Prediction App")
-    st.write("Use this app to predict customer churn based on their profile.")
-
-    # User input section with clear labels
-    credit_score = st.number_input("Credit Score:")
-    geography = st.selectbox("Geography:", ["France", "Germany", "Spain"])  # Adjust options based on data
-    gender = st.selectbox("Gender:", ["Male", "Female"])
-    age = st.number_input("Age:")
-    tenure = st.number_input("Tenure (years with company):")
-    balance = st.number_input("Balance (account balance):")
-    num_of_products = st.number_input("Number of Products:")
-    has_cr_card = st.selectbox("Has Credit Card? (Yes/No)", ["Yes", "No"])
-    is_active_member = st.selectbox("Is Active Member? (Yes/No)", ["Yes", "No"])
-    estimated_salary = st.number_input("Estimated Salary:")
-
-    # Preprocessing for categorical features (assuming One-Hot Encoding)
-    # categorical_features = ["Geography", "HasCrCard", "IsActiveMember"]
-    # encoder = OneHotEncoder(sparse=False)  # Set sparse=False for easier handling
-
-    # Prepare user input as a DataFrame (assuming model expects a DataFrame)
+    geography_input = st.selectbox("Select your Geography :", ["France", "Germany", "Spain"])
+    credit_score_input = st.number_input("Input your Credit Score :")
+    gender_input = st.selectbox("Select your Gender :", ["Male", "Female"])
+    age_input = st.number_input("Inputr your Age :")
+    tenure_input = st.number_input("Input your Tenure (years with company) :")
+    balance_input = st.number_input("Input your Account Balance :")
+    num_of_products_input = st.number_input("Input your Number of Products :")
+    has_cr_card_input = st.selectbox("Do you have a Credit Card ? (Y/N)", ["Y", "N"])
+    is_active_member_input = st.selectbox("are you an Active Member ? (Y/N)", ["Y", "N"])
+    estimated_salary_input = st.number_input("Input your Estimated Salary :")
+    
     user_data = pd.DataFrame({
-        "CreditScore": [credit_score],
-        "Geography": [geography],
-        "Gender": [gender],
-        "Age": [age],
-        "Tenure": [tenure],
-        "Balance": [balance],
-        "NumOfProducts": [num_of_products],
-        "HasCrCard": [1 if has_cr_card == "Yes" else 0],
-        "IsActiveMember": [1 if is_active_member == "Yes" else 0],
-        "EstimatedSalary": [estimated_salary]
+        "CreditScore": [credit_score_input],
+        "Geography": [geography_input],
+        "Gender": [gender_input],
+        "Age": [age_input],
+        "Tenure": [tenure_input],
+        "Balance": [balance_input],
+        "NumOfProducts": [num_of_products_input],
+        "HasCrCard": [1 if has_cr_card_input == "Y" else 0],
+        "IsActiveMember": [1 if is_active_member_input == "Y" else 0],
+        "EstimatedSalary": [estimated_salary_input]
     })
-    print(user_data)
 
-    def load_scalers_encoder(scaler_path="scaler.pkl", encoder_path="encoder.pkl"):
-        with open(scaler_path, "rb") as scaler_file:
-            scalers = pickle.load(scaler_file)
+
+    def load_scaler_and_encoder(encoder_path="encoder.pkl", scaler_path="scaler.pkl"):
         with open(encoder_path, "rb") as encoder_file:
             encoder = pickle.load(encoder_file)
-        return scalers, encoder
-
-    
-
-    # print(user_data.columns)
-
-    # Make prediction button with a loading indicator
-    if st.button("Predict Churn Risk"):
-        all_filled = credit_score and geography and gender and age and tenure and balance and num_of_products and has_cr_card and is_active_member and estimated_salary
-        if not all_filled:
-            st.error("Please fill in all fields before submitting.")
-            return
-        # Load the scalers and encoder
-        scalers, encoder = load_scalers_encoder()
-
-        categorical = ['Geography', 'Gender']
-        conti = ['CreditScore', 'Balance', 'EstimatedSalary']
         
+        with open(scaler_path, "rb") as scaler_file:
+            scaler = pickle.load(scaler_file)
+    
+        return encoder, scaler
+
+    if st.button("Predict Churn granting"):
+        #check all variables
+        check_filled = balance_input and num_of_products_input and has_cr_card_input and is_active_member_input and estimated_salary_input and credit_score_input and geography_input and gender_input and age_input and tenure_input
+
+        #decision
+        if not check_filled:
+            st.error("Please input all the field, before predicting!")
+            return
+
+        numeric = ['CreditScore', 'Balance', 'EstimatedSalary']
+        categorical = ['Geography', 'Gender']        
+        encoder,scaler = load_scaler_and_encoder()
         user_data_subset = user_data[categorical]
         user_data_encoded = pd.DataFrame(encoder.transform(user_data_subset).toarray(), columns=encoder.get_feature_names_out(categorical))
         user_data = user_data.reset_index(drop=True)
         user_data = pd.concat([user_data, user_data_encoded], axis=1)
         user_data.drop(categorical, axis=1, inplace=True)
-
-
-        # scaler
-        user_data[conti] = scalers.transform(user_data[conti])
+        user_data[numeric] = scaler.transform(user_data[numeric])
+       
+        
         with st.spinner("Making prediction..."):
-            # Load the pickled model from its saved location
-            with open("XGBClassifier.pkl", "rb") as model_file:
-                model = pickle.load(model_file)
-
-            # Make prediction
-            prediction = model.predict(user_data)[0]  # Assuming prediction is a probability
-
-            # Display prediction with clear interpretation
-            if prediction == 1:
-                st.write("Predicted: **CHURN**")
+            with open("XGBClassifier.pkl", "rb") as XGB_Classifier:
+                models = pickle.load(XGB_Classifier)
+            prediction = models.predict(user_data)[0]  
+            
+            #Churn not granted
+            if prediction == 0:
+                st.write("Predicted: **You are not Granted a Churn**")
+            #churn granted
             else:
-                st.write("Predicted: **NOT CHURN**")
+                st.write("Predicted: **You are Granted a Churn**")
 
 if __name__ == "__main__":
     main()
